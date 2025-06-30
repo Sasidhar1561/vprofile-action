@@ -101,5 +101,31 @@ jobs:
           chart-path: helm/vprofilecharts
           namespace: default
           values: appimage=${{ secrets.REGISTRY }}/${{ env.ECR_REPOSITORY }},apptag=${{ github.run_number }}
-          name: vprofile-stack    
+          name: vprofile-stack
+          
+      - name: Set Slack colour
+        id: slack_colour
+        if: always()     
+        run: |
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "color=good" >>"$GITHUB_OUTPUT"
+          else
+            echo "color=danger" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Slack notification
+        if: always()      
+        uses: slackapi/slack-github-action@v2
+        with:
+          payload: |
+            {
+              "channel": "#gitops_project",
+              "attachments": [{
+                "color": "${{ steps.slack_colour.outputs.color }}",
+                "text": "*${{ job.status }}:* Job `${{ github.workflow }}` run #${{ github.run_number }}\nMore info at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              }]
+            }
+        env:
+          # Store this bot token (or an incoming‑webhook URL) as an encrypted secret
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}    
     
