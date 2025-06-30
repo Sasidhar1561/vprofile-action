@@ -118,18 +118,15 @@ jobs:
           fi
 
        - name: Slack notification
-         if: always()      
-         uses: slackapi/slack-github-action@v2
+         if: always()
+         uses: slackapi/slack-github-action@v2            # keep v2
          with:
-          payload: |
-            {
-              "channel": "#gitops_project",
-              "attachments": [{
-                "color": "${{ steps.slack_colour.outputs.color }}",
-                "text": "*${{ job.status }}:* Job `${{ github.workflow }}` run #${{ github.run_number }}\nMore info at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-              }]
-            }
-         env:
-          # Store this bot token (or an incoming‑webhook URL) as an encrypted secret
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}    
+          method: chat.postMessage                       # 👈 tell the action which API to call
+          token:  ${{ secrets.SLACK_BOT_TOKEN }}         # 👈 pass the bot token as an *input*
+          payload: |                                     # YAML or JSON both work
+            channel: "#gitops_project"
+            attachments:
+              - color: "${{ steps.slack_colour.outputs.color }}"
+                text: "*${{ job.status }}:* Job `${{ github.workflow }}` run #${{ github.run_number }}\nMore info: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+   
     
