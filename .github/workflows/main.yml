@@ -3,7 +3,7 @@ on: workflow_dispatch
 
 env:
   AWS_REGION: us-east-2
-  ECR_REPOSITORY: vprofileapp
+  ECR_REPOSITORY: vproapp
   EKS_CLUSTER: vprofile-eks
 
 jobs:
@@ -61,6 +61,30 @@ jobs:
          daemon_off: false
          dockerfile: ./Dockerfile
          context: ./
+      
+      - name: Set Slack colour
+        id: slack_colour
+        if: always()     
+        run: |
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "color=good" >>"$GITHUB_OUTPUT"
+          else
+            echo "color=danger" >>"$GITHUB_OUTPUT"
+          fi
+  
+      - name: Slack notification
+        if: always()
+        uses: slackapi/slack-github-action@v2
+        with:
+           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+           webhook-type: incoming-webhook
+           payload: |
+            attachments:
+             - color: "${{ steps.slack_colour.outputs.color }}"
+               fallback: "${{ job.status }} – ${{ github.workflow }} run #${{ github.run_number }}"
+               text: |
+                 *${{ job.status }}* – *${{ github.workflow }}* run #${{ github.run_number }}
+                 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|More info>
 
     DeployToEKS:
      needs: BUILD_AND_PUBLISH
@@ -124,4 +148,9 @@ jobs:
            webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
            webhook-type: incoming-webhook
            payload: |
-             text: "*${{ job.status }}:* `${{ github.workflow }}` run #${{ github.run_number }}\nMore info: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            attachments:
+             - color: "${{ steps.slack_colour.outputs.color }}"
+               fallback: "${{ job.status }} – ${{ github.workflow }} run #${{ github.run_number }}"
+               text: |
+                 *${{ job.status }}* – *${{ github.workflow }}* run #${{ github.run_number }}
+                 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|More info>
