@@ -150,12 +150,12 @@ jobs:
          with:
            webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
            webhook-type: incoming-webhook
-           payload:                      |
-            attachments:
-              - color: "${{ steps.colour.outputs.color }}"
-                text: |
-                  ${{ steps.colour.outputs.icon }} *Workflow*: **${{ github.workflow }}**
-                  *Build:*   ${{ needs.Build_AND_test.result }}
-                  *Test:*    ${{ needs.BUILD_AND_PUBLISH.result }}
-                  *Deploy:*  ${{ needs.DeployToEKS.result }}
-                  <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|More info #${{ github.run_number }}>
+           payload:  |
+             {
+               "attachments": [
+                 {
+                   "color": "${{ steps.slack_colour.outputs.color }}",
+                   "text": "${{ steps.slack_colour.outputs.icon }} *Workflow:* **${{ github.workflow }}**\n*Build:* ${{ needs.Build_AND_test.result }}\n*Test:* ${{ needs.BUILD_AND_PUBLISH.result }}\n*Deploy:* ${{ needs.DeployToEKS.result }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|More info #${{ github.run_number }}>"
+                 }
+               ]
+             }
