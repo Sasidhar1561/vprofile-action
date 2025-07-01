@@ -128,17 +128,20 @@ jobs:
           name: vprofile-stack
     
     Notification:
-     needs: DeployToEKS
+     needs: [Build_AND_test, BUILD_AND_PUBLISH, DeployToEKS]
+     if: ${{ always() }}
      runs-on: ubuntu-latest
      steps:
        - name: Set Slack colour
          id: slack_colour
          if: always()     
-         run: |
-          if [[ "${{ job.status }}" == "success" ]]; then
-            echo "color=good" >>"$GITHUB_OUTPUT"
+         run:  |
+          if [ "${{ needs.DeployToEKS.result }}" = "success" ]; then
+            echo "color=good"   >> "$GITHUB_OUTPUT"
+            echo "icon=:white_check_mark:" >> "$GITHUB_OUTPUT"
           else
-            echo "color=danger" >>"$GITHUB_OUTPUT"
+            echo "color=danger" >> "$GITHUB_OUTPUT"
+            echo "icon=:x:" >> "$GITHUB_OUTPUT"
           fi
   
        - name: Slack notification
@@ -147,10 +150,12 @@ jobs:
          with:
            webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
            webhook-type: incoming-webhook
-           payload: |
+           payload:                      |
             attachments:
-             - color: "${{ steps.slack_colour.outputs.color }}"
-               fallback: "${{ job.status }} – ${{ github.workflow }} run #${{ github.run_number }}"
-               text: |
-                 *${{ job.status }}* – *${{ github.workflow }}* run #${{ github.run_number }}
-                 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|More info>
+              - color: "${{ steps.colour.outputs.color }}"
+                text: |
+                  ${{ steps.colour.outputs.icon }} *Workflow*: **${{ github.workflow }}**
+                  *Build:*   ${{ needs.Build_AND_test.result }}
+                  *Test:*    ${{ needs.BUILD_AND_PUBLISH.result }}
+                  *Deploy:*  ${{ needs.DeployToEKS.result }}
+                  <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|More info #${{ github.run_number }}>
