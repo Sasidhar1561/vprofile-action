@@ -1,32 +1,36 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vprodb
-  labels:
-    app: vprodb
+  name: vproapp
+  labels: 
+    app: vproapp
 spec:
+  replicas: 1
   selector:
     matchLabels:
-      app: vprodb
-  replicas: 1
+      app: vproapp
   template:
     metadata:
       labels:
-        app: vprodb
+        app: vproapp
     spec:
       containers:
-      - name: vprodb
-        image: vprofile/vprofiledb 
+      - name: vproapp
+        image: sasidharsaz/vprofileapp    
         ports:
-        - name: vprodb-port
-          containerPort: 3306
-        env: 
-         - name: MYSQL_ROOT_PASSWORD
-           valueFrom:
-             secretKeyRef:
-               name: app-secret
-               key: db-pass
-#        env:
-#         - name: MYSQL_ROOT_PASSWORD
-#           value: "vprodbpass"
-
+        - name: vproapp-port
+          containerPort: 8080       
+      imagePullSecrets:
+      - name: myregistrykey    
+      
+      initContainers:
+      - name: init-db
+        image: busybox:1.28
+        command: ['sh', '-c', "until nslookup vprodb.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for myservice; sleep 2; done"]
+      - name: init-cache
+        image: busybox:1.28
+        command: ['sh', '-c', "until nslookup vpromq01.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for mydb; sleep 2; done"]  
+      - name: init-rmq
+        image: busybox:1.28
+        command: ['sh', '-c', "until nslookup vprocache01.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for mydb; sleep 2; done"]  
